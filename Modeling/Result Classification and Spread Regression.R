@@ -4,38 +4,101 @@ library(readr)
 library(tidyverse)
 
 data = read_csv('GameResults-Recruiting-LaggedStats.csv')
+# data = data %>% dplyr::select(-Date,
+#                               -Season,
+#                               -`Home Score`,
+#                               -`Visitor Score`)
+
+test = read_csv('test.csv')
+
+
+test = test %>% dplyr::select(-Spread,
+                              -Result,
+                              -Total)
+# 
+# test = test %>% dplyr::select(-Date,
+#                               -Season)
+
+test$Location = 'Visitor'
+
+test$`Season Type` = 'Regular'
+
+test = test %>% dplyr::select(`Season Type`,
+                              Location,
+                              Home.Conference,
+                              Visitor.Conference,
+                              
+                              is.conf.game,
+                              is.conf.div.game,
+                              everything())
+
+test[,1:6] = test[,1:6] %>% map(as.factor)
+
+
+data = data[,6:ncol(data)]
 
 
 
 
-site = data$Location
-spread = data$Spread
+
+data$Home.Conf.Div = paste(data$Home.Conference, data$Home.Division,
+                      sep = ' ')
+
+data$Visitor.Conf.Div = paste(data$Visitor.Conference, data$Visitor.Division,
+                      sep = ' ')
 
 
-season.type = data$`Season Type`
+data = data %>% dplyr::select(-Season,
+                              -Visitor.Division,
+                              -Home.Division,
+                              -Home.G.,
+                              -Visitor.G.,
+                              -Home.Conf.Div,
+                              -Visitor.Conf.Div)
 
-home.g = data$Home.G.
+data = data %>% dplyr::select(Result,
+                              `Season Type`,
+                              Location,
+                              Home.Conference,
+                              Visitor.Conference,
+                              
+                              is.conf.game,
+                              is.conf.div.game,
+                              everything())
 
-visitor.g = data$Visitor.G.
+data[,1:7] = data[,1:7] %>% map(as.factor)
 
 
-result  = data$Result
-result = ifelse(result == 'W', 1, 0)
 
 
-data = data[,which(colnames(data) == 'Result'):ncol(data)]
+# data$home.is.power.five = as.factor(ifelse(data$Home.Conference %in%
+#                                    c('Atlantic Coast',
+#                                      'Pac-12',
+#                                      'Big Ten',
+#                                      'Southeaastern',
+#                                      'Big 12'),
+#                                  1, 0))
+# 
+# data$visitor.is.power.five = as.factor(ifelse(data$Visitor.Conference %in%
+#                                    c('Atlantic Coast',
+#                                      'Pac-12',
+#                                      'Big Ten',
+#                                      'Southeaastern',
+#                                      'Big 12'),
+#                                  1, 0))
 
 
-roll.avgs = data[,which(grepl('.roll.avg', colnames(data)))]
 
-dif.talent = data.frame(matrix(ncol = 15, nrow = nrow(data)))
-colnames(dif.talent) = gsub('Home', 'Dif', colnames(data)[2:16])
-
-for(i in 2:16){
-  
-  dif.talent[,i-1] = data[,i] - data[,c(i+15)]
-  
-}
+# recruit.data = data[,which(grepl('Recruit', colnames(data)))]
+# 
+# dif.talent = data.frame(matrix(ncol = 15, nrow = nrow(data)))
+# colnames(dif.talent) = gsub('Home', 'Dif', colnames(recruit.data)[1:15])
+# 
+# for(i in 1:15){
+#   
+#   dif.talent[,i] = recruit.data[,i] - recruit.data[,c(i+15)]
+#   
+# }
 
 
 # 
@@ -52,21 +115,33 @@ for(i in 2:16){
 #   dif.talent$Dif.Recruit.Mean.Rating.Senior + 
 #   dif.talent$Dif.Recruit.Mean.Rating.RS.Senior
 
-results.data = cbind(result, 
-                     site,
-                     home.g,
-                     visitor.g,
-                    season.type,
-                    spread,
-                     dif.talent,
-                    roll.avgs
-                    )
+# results.data = cbind(result, 
+#                      site,
+#                      home.g,
+#                      visitor.g,
+#                     season.type,
+#                     spread,
+#                     home.conf,
+#                     visitor.conf,
+#                     
+#                      dif.talent,
+#                     roll.avgs
+#                     )
 
 
-results.data = na.omit(results.data)
+# data  = data[,-c(which(grepl('Recruit', colnames(data))))]
+# 
+# data = cbind(data, dif.talent)
 
-spread = results.data$spread
-results.data = results.data %>% dplyr::select(-spread)
+results.data = na.omit(data)
+
+
+spread = results.data$Spread
+total = results.data$Total
+
+results.data = results.data %>% dplyr::select(-Spread,
+                              -Total)
+
 
 # 
 # 
@@ -84,8 +159,9 @@ library(caret)
 
 fitControl <- trainControl(
   method = 'cv',                   # k-fold cross validation
-  number = 5,  
+  number = 10,  
   savePredictions = 'final',
+  classProbs=TRUE
 ) 
 
 
@@ -95,10 +171,9 @@ fitControl <- trainControl(
 library(caretEnsemble)
 options(java.parameters = "-Xmx5g")
 
-algorithmList <- c('qda',
-                   'rf',
-                   'nnet',
-                   'multinom')
+algorithmList <- c('svmLinearWeights2',
+                   'lda',
+                   'qda')
 
 
 
@@ -110,39 +185,62 @@ set.seed(123)
 train_ind <- sample(seq_len(nrow(results.data)), size = smp_size)
 
 
-results.data$result = as.factor(results.data$result)
 
-train <- results.data[train_ind, ]
-test <- results.data[-train_ind, ]
+train <- results.data
 
-
-
-win.loss <- caretList(form = result ~ ., data=train,  trControl=fitControl, methodList=algorithmList) 
-results <- resamples(win.loss)
-summary(results)
+test = test
 
 
 
+win.loss <- caretList(form = Result ~ ., data=train,  
+                      trControl=fitControl, 
+                      methodList=algorithmList) 
+# results <- resamples(win.loss)
+# summary(results)
 
 
-qda.predictions = predict(win.loss$qda, test)
-rf.predictions = predict(win.loss$rf, test)
-nnet.predictions = predict(win.loss$nnet, test)
-multinom.predictions = predict(win.loss$multinom, test)
+logit <- caretList(form = Result ~ ., data=train,  
+                      trControl=fitControl, 
+                      methodList='glm', family = 'binomial') 
+
+# 
+# stackControl <- trainControl(
+#   method = 'cv',                   # k-fold cross validation
+#   number = 40,  
+#   
+#   savePredictions = 'final'      # saves predictions for optimal tuning parameter
+# ) 
+# 
+# stack.glm.win.loss <- caretStack(win.loss, 
+#                                method = "glm", 
+#                                trControl=stackControl) 
 
 
-qda.rate = mean(qda.predictions == test$result)
-rf.rate = mean(rf.predictions == test$result)
-nnet.rate = mean(nnet.predictions == test$result)
-multinom.rate = mean(multinom.predictions == test$result)
 
-rate.matrix = matrix(data = c('qda', qda.rate,
-                              'rf', rf.rate,
-                              'nnet', nnet.rate,
-                              'multinom', multinom.rate),
+svmLinearWeights2.pred = predict(win.loss$svmLinearWeights2, test)
+lda.pred = predict(win.loss$lda, test)
+qda.pred = predict(win.loss$qda, test)
+logit.pred = predict(logit$glm, test)
+
+test$Result = logit.pred
+test = test %>% dplyr::select(Result,
+                              everything())
+
+
+svmLinearWeights2.rate = mean(svmLinearWeights2.pred == test$Result)
+lda.rate = mean(lda.pred == test$Result)
+qda.rate = mean(qda.pred == test$Result)
+logit.rate = mean(logit.pred == test$Result)
+
+rate.matrix = matrix(data = c('svmLinearWeights2', svmLinearWeights2.rate,
+                              'lda', lda.rate,
+                              'qda', qda.rate,
+                              'logit', logit.rate),
                      byrow = T,
                      nrow = 4, ncol = 2)
-rate.matrix
+
+colnames(rate.matrix) = c('Model Type', 'Accuracy')
+rate.matrix[, 'Accuracy'] = paste(as.numeric(rate.matrix[, 'Accuracy']) * 100, '%', sep = '')
 
 
 
@@ -151,7 +249,7 @@ spread.data = cbind(spread, results.data)
 
 
 
-spread.data = spread.data %>% dplyr::select(-result)
+spread.data = spread.data %>% dplyr::select(-Result)
 
 
 
@@ -163,24 +261,191 @@ set.seed(123)
 train_ind <- sample(seq_len(nrow(spread.data)), size = smp_size)
 
 
-spread.data$result = as.factor(spread.data$result)
 
-train <- spread.data[train_ind, ]
-test <- spread.data[-train_ind, ]
+train <- spread.data
+
+
+
+algorithmList <- c('lasso', 'earth',
+                   'ridge',
+                   'rf')
+
+
+
+fitControl <- trainControl(
+  method = 'cv',                   # k-fold cross validation
+  number = 10,  
+  savePredictions = 'final'
+) 
+
+
+
+
+spread.models <- caretList(form = spread ~ ., 
+                           data=train,  
+                           trControl=fitControl, 
+                           methodList=algorithmList)
+results <- resamples(spread.models)
+summary(results)
+
+
+stackControl <- trainControl(
+  method = 'cv',                   # k-fold cross validation
+  number = 10,  
+  
+  savePredictions = 'final'      # saves predictions for optimal tuning parameter
+) 
+
+stack.glm.spread <- caretStack(spread.models, 
+                             method = "glm", 
+                             trControl=stackControl) 
+
+library(bartMachine)
+
+
+
+
+stack.pred = predict(stack.glm.spread, test)
+lasso.pred = predict(spread.models$lasso, test)
+ridge.pred = predict(spread.models$ridge, test)
+rf.pred = predict(spread.models$rf, test)
+earth.pred = predict(spread.models$earth, test)
+
+test$Spread = stack.pred
+test = test %>% dplyr::select(Result,
+                              Spread,
+                              everything())
+
+
+stack.err = test$spread - stack.pred
+lasso.err = test$spread - lasso.pred
+ridge.err = test$spread - ridge.pred
+rf.err = test$spread - rf.pred
+earth.err = test$spread - earth.pred
+
+
+rmse.stacked <- sqrt(mean(stack.err^2))
+rmse.ridge <- sqrt(mean(ridge.err^2))
+rmse.earth <- sqrt(mean(earth.err^2))
+rmse.rf = sqrt(mean(rf.err^2))
+rmse.lasso = sqrt(mean(lasso.err^2))
+
+
+
+spread.rmse.matrix = matrix(nrow = 5, ncol = 2)
+spread.rmse.matrix[1,1] = 'earth'
+spread.rmse.matrix[2,1] = 'Ridge'
+spread.rmse.matrix[3,1] = 'Lasso'
+spread.rmse.matrix[4,1] = 'rf'
+spread.rmse.matrix[5,1] = 'Stacked'
+
+spread.rmse.matrix[1,2] = rmse.earth
+spread.rmse.matrix[2,2] = rmse.ridge
+spread.rmse.matrix[3,2] = rmse.lasso
+spread.rmse.matrix[4,2] = rmse.rf
+spread.rmse.matrix[5,2] = rmse.stacked
+
+spread.rmse.matrix = as.data.frame(spread.rmse.matrix)
+colnames(spread.rmse.matrix)[1] = 'Model Type'
+colnames(spread.rmse.matrix)[2] = 'Out of Sample RMSE'
+print(spread.rmse.matrix)
+
+
+
+
+total.data = cbind(total, results.data)
+
+
+
+total.data = total.data %>% dplyr::select(-Result)
+
+
+
+#classes were not represented unless it was an even split
+smp_size <- floor(0.9 * nrow(total.data))
+
+## set the seed to make your partition reproducible
+set.seed(123)
+train_ind <- sample(seq_len(nrow(total.data)), size = smp_size)
+
+
+
+train <- total.data[train_ind, ]
+test <- total.data[-train_ind, ]
 
 
 
 algorithmList <- c('lasso',
                    'ridge',
-                   'rf',
-                   'nnet')
+                   'earth',
+                   'pls')
 
 
 
-spread.models <- caretList(form = Spread ~ ., data=train,  trControl=fitControl, methodList=algorithmList)
-results <- resamples(spread.models)
+total.models <- caretList(form = total ~ ., data=train,  trControl=fitControl, methodList=algorithmList)
+results <- resamples(total.models)
 summary(results)
 
 
+stackControl <- trainControl(
+  method = 'cv',                   # k-fold cross validation
+  number = 10,  
+  
+  savePredictions = 'final'      # saves predictions for optimal tuning parameter
+) 
+
+stack.glm.total <- caretStack(total.models, 
+                               method = "glm", 
+                               trControl=stackControl) 
+
+library(bartMachine)
 
 
+
+
+stack.pred = predict(stack.glm.total, test)
+lasso.pred = predict(total.models$lasso, test)
+ridge.pred = predict(total.models$ridge, test)
+pls.pred = predict(total.models$pls, test)
+earth.pred = predict(total.models$earth, test)
+
+
+test$Total = stack.pred
+test = test %>% dplyr::select(Result,
+                              Spread,
+                              Total,
+                              everything())
+write.csv(test, 'Current.Predictions.csv')
+
+stack.err = test$total - exp(stack.pred)
+lasso.err = test$total - exp(lasso.pred)
+ridge.err = test$total - exp(ridge.pred)
+pls.err = test$total - exp(pls.pred)
+earth.err = test$total - exp(earth.pred)
+
+
+rmse.stacked <- sqrt(mean(stack.err^2))
+rmse.ridge <- sqrt(mean(ridge.err^2))
+rmse.earth <- sqrt(mean(earth.err^2))
+rmse.pls = sqrt(mean(pls.err^2))
+rmse.lasso = sqrt(mean(lasso.err^2))
+
+
+
+total.rmse.matrix = matrix(nrow = 5, ncol = 2)
+total.rmse.matrix[1,1] = 'earth'
+total.rmse.matrix[2,1] = 'Ridge'
+total.rmse.matrix[3,1] = 'Lasso'
+total.rmse.matrix[4,1] = 'PLS'
+total.rmse.matrix[5,1] = 'Stacked'
+
+total.rmse.matrix[1,2] = rmse.earth
+total.rmse.matrix[2,2] = rmse.ridge
+total.rmse.matrix[3,2] = rmse.lasso
+total.rmse.matrix[4,2] = rmse.pls
+total.rmse.matrix[5,2] = rmse.stacked
+
+total.rmse.matrix = as.data.frame(total.rmse.matrix)
+colnames(total.rmse.matrix)[1] = 'Model Type'
+colnames(total.rmse.matrix)[2] = 'Out of Sample RMSE'
+print(total.rmse.matrix)

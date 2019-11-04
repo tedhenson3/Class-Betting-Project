@@ -1,3 +1,5 @@
+
+
 library(readr)
 library(tidyverse)
 
@@ -46,6 +48,10 @@ Recruiting.Data$Team = gsub('Gardner-Webb', 'Gardner Webb', Recruiting.Data$Team
 Recruiting.Data$Team = gsub('Gardner-Webb', 'Gardner Webb', Recruiting.Data$Team, fixed = T)
 
 
+Recruiting.Data = Recruiting.Data %>% arrange(Team,
+                                              desc(Season))
+
+Recruiting.Data = Recruiting.Data %>% group_by(Team) %>% filter(Season == 2019)
 
 
 
@@ -62,59 +68,18 @@ colnames(visitor.recruiting)[3:length(colnames(visitor.recruiting))] =
   paste('Visitor', 'Recruit', colnames(visitor.recruiting)[3:length(colnames(visitor.recruiting))],
         sep = '.')
 
-GameResults <- read_csv("GameResults.csv")
-GameResults$Season = as.numeric(word(
-  GameResults$Season,
-  start = 1,
-  end = 1,
-  sep  = fixed("-")
-))
-
-
-
-GameResults = left_join(GameResults, home.recruiting)
-
-GameResults = left_join(GameResults, visitor.recruiting)
-
-GameResults[is.na(GameResults)] = 0
+Predictions = read_csv('Lagged.Averages(Predictions).csv')
 
 
 
 
-GameResults = GameResults[!duplicated(GameResults),]
+Predictions = left_join(Predictions, home.recruiting)
 
-lagged.stats = read_csv(file = 'Lagged.Averages.csv')
+Predictions = left_join(Predictions, visitor.recruiting)
 
-
-lagged.stats.2 = lagged.stats[,which(colnames(lagged.stats) == 'Season'):ncol(lagged.stats)]
-
-lagged.stats = cbind(lagged.stats$School, lagged.stats$Date,
-                       lagged.stats.2)
-
-colnames(lagged.stats)[1:2] = c('School', 'Date')
+Predictions[is.na(Predictions)] = 0
 
 
-home.lagged = lagged.stats
-colnames(home.lagged)[which(colnames(home.lagged) == 'School')] = 'Home Team'
-colnames(home.lagged)[4:length(colnames(home.lagged))] =
-  paste('Home', colnames(home.lagged)[4:length(colnames(home.lagged))],
-        sep = '.')
-
-
-visitor.lagged = lagged.stats
-colnames(visitor.lagged)[which(colnames(visitor.lagged) == 'School')] = 'Visitor Team'
-colnames(visitor.lagged)[4:length(colnames(visitor.lagged))] =
-  paste('Visitor', colnames(visitor.lagged)[4:length(colnames(visitor.lagged))],
-        sep = '.')
-
-GameResults = left_join(GameResults, home.lagged)
-
-GameResults = left_join(GameResults, visitor.lagged)
-
-
-
-
-GameResults = GameResults[!duplicated(GameResults),]
 
 conferences = read_csv('Conferences.csv')
 
@@ -193,48 +158,48 @@ colnames(visitor.conferences)[2:ncol(visitor.conferences)] = paste('Visitor',
                                                              sep = '.')
 
 
-GameResults = left_join(GameResults, home.conferences)
-GameResults = left_join(GameResults, visitor.conferences)
+Predictions = left_join(Predictions, home.conferences)
+Predictions = left_join(Predictions, visitor.conferences)
 
 
-missing = unique(c(GameResults$`Home Team`[which(is.na(
-  GameResults$Home.Conference))]), GameResults$`Visitor Team`[which(is.na(
-    GameResults$Visitor.Conference))])
+missing = unique(c(Predictions$`Home Team`[which(is.na(
+  Predictions$Home.Conference))]), Predictions$`Visitor Team`[which(is.na(
+    Predictions$Visitor.Conference))])
 
 missing = unique(missing)
 
 
-GameResults$Home.Conference = ifelse(is.na(GameResults$Home.Conference),
+Predictions$Home.Conference = ifelse(is.na(Predictions$Home.Conference),
                                      'FCS',
-                                     GameResults$Home.Conference)
+                                     Predictions$Home.Conference)
 
 
-GameResults$Visitor.Conference = ifelse(is.na(GameResults$Visitor.Conference),
+Predictions$Visitor.Conference = ifelse(is.na(Predictions$Visitor.Conference),
                                      'FCS',
-                                     GameResults$Visitor.Conference)
+                                     Predictions$Visitor.Conference)
 
 
-GameResults$Visitor.Division = ifelse(GameResults$Visitor.Conference == 'FCS',
+Predictions$Visitor.Division = ifelse(Predictions$Visitor.Conference == 'FCS',
                                      'FCS',
-                                     GameResults$Visitor.Division)
+                                     Predictions$Visitor.Division)
 
 
 
-GameResults$Home.Division = ifelse(GameResults$Home.Conference == 'FCS',
+Predictions$Home.Division = ifelse(Predictions$Home.Conference == 'FCS',
                                       'FCS',
-                                      GameResults$Home.Division)
+                                      Predictions$Home.Division)
 
-GameResults$is.conf.game = ifelse(GameResults$Home.Conference == GameResults$Visitor.Conference,
+Predictions$is.conf.game = ifelse(Predictions$Home.Conference == Predictions$Visitor.Conference,
                                 1, 0)
 
-GameResults$is.conf.div.game = ifelse(GameResults$Home.Conference == 
-                                        GameResults$Visitor.Conference & 
-                                        GameResults$Home.Division == GameResults$Visitor.Division,
+Predictions$is.conf.div.game = ifelse(Predictions$Home.Conference == 
+                                        Predictions$Visitor.Conference & 
+                                        Predictions$Home.Division == Predictions$Visitor.Division,
                                   1, 0)
 
 
 
-write.csv(GameResults, row.names = F, 'GameResults-Recruiting-LaggedStats.csv')
+write.csv(Predictions, row.names = F, 'test.csv')
 
 
 
