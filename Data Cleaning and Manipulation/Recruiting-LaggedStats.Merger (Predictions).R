@@ -8,14 +8,12 @@ Recruiting.Data <- read_csv("Lagged Recruiting Data.csv")
 
 Recruiting.Data$Team = gsub('UCF', 'Central Florida', Recruiting.Data$Team, fixed = T)
 Recruiting.Data$Team = gsub('Ole Miss', 'Mississippi', Recruiting.Data$Team, fixed = T)
-Recruiting.Data$Team = gsub('FIU', 'Florida Intl', Recruiting.Data$Team, fixed = T)
 Recruiting.Data$Team = gsub('Miami (OH)', 'Miama Ohio', Recruiting.Data$Team, fixed = T)
 
 Recruiting.Data$Team = gsub('Appalachian State',
                             'Appalachian St',
                             Recruiting.Data$Team,
                             fixed = T)
-Recruiting.Data$Team = gsub('Miami', 'Miami Florida', Recruiting.Data$Team, fixed = T)
 
 Recruiting.Data$Team = gsub('Miama Ohio', 'Miami Ohio', Recruiting.Data$Team, fixed = T)
 
