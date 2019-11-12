@@ -86,6 +86,47 @@ GameResults = GameResults[!duplicated(GameResults),]
 lagged.stats = read_csv(file = 'Lagged.Averages.csv')
 
 
+lagged.stats$`School` = gsub('North Carolina State',
+                          'NC State',
+                          lagged.stats$`School`)
+
+lagged.stats$`Opponent` = gsub('North Carolina State',
+                            'NC State',
+                            lagged.stats$`Opponent`)
+
+
+lagged.stats$`School` = gsub('Pitt',
+                          'Pittsburgh',
+                          lagged.stats$`School`)
+
+
+lagged.stats$`School` = gsub('Miami (FL)',
+                             'Miami Florida',
+                             lagged.stats$`School`,
+                             fixed = T)
+
+
+lagged.stats$`Opponent` = gsub('Miami (FL)',
+                             'Miami Florida',
+                             lagged.stats$`Opponent`,
+                             fixed = T)
+
+lagged.stats$`Opponent` = gsub('Pittsburghsburgh',
+                            'Pittsburgh',
+                            lagged.stats$`Opponent`)
+
+
+
+lagged.stats$`School` = gsub('Florida International',
+                          'Florida Intl',
+                          lagged.stats$`School`)
+
+lagged.stats$`Opponent` = gsub('Florida International',
+                            'Florida Intl',
+                            lagged.stats$`Opponent`)
+
+
+
 lagged.stats.2 = lagged.stats[,which(colnames(lagged.stats) == 'Season'):ncol(lagged.stats)]
 
 lagged.stats = cbind(lagged.stats$School, lagged.stats$Date,
@@ -172,9 +213,6 @@ conferences$Team = gsub('Florida International', 'Florida Intl',
 conferences$Team = gsub('Charlotte', 'Charlotte U',
                         conferences$Team)
 
-conferences$Team = gsub('Florida International', '	Florida Intl',
-                        conferences$Team)
-
 
 
 
@@ -231,6 +269,7 @@ GameResults$is.conf.div.game = ifelse(GameResults$Home.Conference ==
                                         GameResults$Visitor.Conference & 
                                         GameResults$Home.Division == GameResults$Visitor.Division,
                                   1, 0)
+
 
 
 

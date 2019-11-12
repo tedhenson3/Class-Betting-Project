@@ -6,6 +6,9 @@ setwd('~/Betting Project')
 GameStats <- read.csv('GameStats.csv')
 GameStats = GameStats[,2:ncol(GameStats)]
 
+GameStats$Opponent = gsub('Louisiana State',
+                          'LSU',
+                          GameStats$Opponent)
 
 Predictions = read_csv('Predictions.csv')
 
@@ -111,11 +114,15 @@ GameStats.def = GameStats %>% dplyr::group_by(Opponent,
          pts.def.roll.avg = lag(rollapplyr(c((RushTD + PassTD)*6  + XPM + 3*FGM) , 15, mean, partial = TRUE),
                                 n = 1),
          pts.rate.def.roll.avg = lag(rollapplyr(c((RushTD + PassTD)*6  + XPM + 3*FGM) / (PassAtt + RushAtt), 15, mean, partial = TRUE),
-                                n = 1))
+                                n = 1),
+         pts.rate.4.def.roll.avg = lag(rollapplyr(c((RushTD + PassTD)*6  + XPM + 3*FGM) / (PassAtt + RushAtt),
+                                        4, mean, partial = TRUE),
+                                     n = 1))
 
 GameStats.def = GameStats.def %>% dplyr::select(Opponent,
                                                 ypa.def.roll.avg, 
                                                 comp.pct.def.roll.avg,
+                                                pts.rate.4.def.roll.avg,
                                                 int.rate.def.roll.avg,
                                                 rush.ypa.def.roll.avg, 
                                                 pass.ypa.def.roll.avg, 
@@ -125,6 +132,7 @@ GameStats.def = GameStats.def %>% dplyr::select(Opponent,
                                                 Date,
                                                 tos.rate.def.roll.avg,
                                                 tos.def.roll.avg,
+                                                pts.rate.4.def.roll.avg,
                                                 pts.rate.def.roll.avg,
                                                 pts.def.roll.avg,
                                                 Season)
@@ -166,11 +174,18 @@ GameStats.off = GameStats %>% dplyr::group_by(School,
                                      n = 1),
          win.pct.roll = lag(rollapplyr(X.1 , 15, mean, partial = TRUE),
                             n = 1),
+         win.pct.4.roll = lag(rollapplyr(X.1 , 4, mean, partial = TRUE),
+                              n = 1),
+         pts.rate.4.off.roll.avg = lag(rollapplyr(c((RushTD + PassTD)*6  + XPM + 3*FGM) /(PassAtt + RushAtt) ,
+                                            4, mean, partial = TRUE),
+                              n = 1),
          pts.rate.off.roll.avg = lag(rollapplyr(c((RushTD + PassTD)*6  + XPM + 3*FGM) /(PassAtt + RushAtt) , 15, mean, partial = TRUE),
                                 n = 1))
 
 GameStats.off = GameStats.off %>% dplyr::select(School,
                                                 win.pct.roll,
+                                                win.pct.4.roll,
+                                                pts.rate.4.off.roll.avg,
                                                 ypa.off.roll.avg, 
                                                 tds.rate.off.roll.avg,
                                                 rush.tds.off.roll.avg,
@@ -205,6 +220,7 @@ GameStats = GameStats %>% dplyr::select(School,
                                         
                                         #off variables
                                         ypa.off.roll.avg, 
+                                        tds.rate.off.roll.avg,
                                         rush.tds.off.roll.avg,
                                         pass.tds.off.roll.avg,
                                         int.rate.off.roll.avg,
@@ -214,23 +230,24 @@ GameStats = GameStats %>% dplyr::select(School,
                                         pass.ypa.off.roll.avg,
                                         tos.rate.off.roll.avg,
                                         pts.rate.off.roll.avg,
-                                        pts.off.roll.avg,
                                         tds.rate.off.roll.avg,
+                                        pts.off.roll.avg,
                                         
                                         
                                         #def variables
                                         ypa.def.roll.avg, 
-                                        comp.pct.def.roll.avg,
-                                        int.rate.def.roll.avg,
-                                        rush.ypa.def.roll.avg, 
-                                        pass.ypa.def.roll.avg, 
+                                        tds.rate.def.roll.avg,
                                         rush.tds.def.roll.avg,
                                         pass.tds.def.roll.avg,
-                                        tos.rate.def.roll.avg,
+                                        int.rate.def.roll.avg,
                                         tos.def.roll.avg,
+                                        comp.pct.def.roll.avg,
+                                        rush.ypa.def.roll.avg, 
+                                        pass.ypa.def.roll.avg,
+                                        tos.rate.def.roll.avg,
                                         pts.rate.def.roll.avg,
+                                        tds.rate.def.roll.avg,
                                         pts.def.roll.avg,
-                                        tds.rate.def.roll.avg
                                         )
 
 
